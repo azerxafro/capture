@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const admin = require('firebase-admin');
 
 // Initialize Firebase
-const serviceAccount = require('../firebase.json'); // Path to your service account key
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS || '{}');
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
